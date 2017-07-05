@@ -18,7 +18,13 @@ public class TransApi {
         this.securityKey = securityKey;
     }
 
+    public static void log(String msg) {
+        System.out.println(String.format("%s [%s] %s",
+                "", "", msg));
+    }
+
     public ResultBean getTransResult(String query, String from, String to) {
+        log(String.format("getTransResult called: query[%s], from[%s], to[%s]", query, from, to));
         Map<String, String> params = buildParams(query, from, to);
         String result = HttpGet.get(TRANS_API_HOST, params);
         ResultBean resultBean = null;
@@ -26,6 +32,7 @@ public class TransApi {
             resultBean = new Gson().fromJson(result, ResultBean.class);
         } catch (JsonSyntaxException e) {
             e.printStackTrace();
+            log("Error: " + result);
         }
         return resultBean;
     }

@@ -1,8 +1,4 @@
 import com.baidu.translate.demo.TransApi;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonSyntaxException;
-import com.google.gson.reflect.TypeToken;
 
 import org.dom4j.Attribute;
 import org.dom4j.Document;
@@ -10,7 +6,10 @@ import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.dom4j.io.SAXReader;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -27,6 +26,7 @@ public class Main {
     private static String SRC_FILE_PATH = "";
     private static String SRC_CODE = "auto";
     private static String DES_CODE = "en";
+    private static String SEPARATOR = "\\\\n";
 
     public static void main(String[] args) {
         if (args.length == 0 || args[0].isEmpty()) {
@@ -102,7 +102,7 @@ public class Main {
             logInfo("load local source file success!");
 
             SAXReader reader = new SAXReader();
-            HashMap<String, String> tmp = null;
+            LinkedHashMap<String, String> tmp = null;
             try {
                 Document document = reader.read(srcF);
                 tmp = parsingXml(document);
@@ -116,14 +116,36 @@ public class Main {
                 break;
             }
 
-            Gson gson = new GsonBuilder().enableComplexMapKeySerialization().create();
-            String queryAll = gson.toJson(tmp);
-            logInfo("check query all length: " + queryAll.length());
-            String[] qs = getSubStringIfTooLength(queryAll);
+            if (SUPPORTED_MAP_MODEL_2.keySet().contains(DES_CODE)) {
+                translationOneByOne(tmp);
+                return;
+            }
+            ArrayList<String> willQueryStrList = new ArrayList<>();
+            StringBuilder sb = new StringBuilder();
+            for (String s : tmp.values()) {
+                logInfo("current string builder length: " + sb.toString().length());
+                logInfo("current value string length: " + s.length());
+                long sumLength = sb.length() + s.length() + 1;
+                logInfo("sum current two string: " + sumLength);
+                if (sumLength < QUERY_STR_MAX_LENGTH) {
+                    sb.append(s).append(SEPARATOR);
+                } else {
+                    String query = sb.toString();
+                    logInfo("check query str: " + query);
+                    willQueryStrList.add(query);
+                    sb = new StringBuilder();
+                    sb.append(s).append(SEPARATOR);
+                }
+            }
+            if (!sb.toString().isEmpty()) {
+                String query = sb.toString();
+                logInfo("check query str: " + query);
+                willQueryStrList.add(query);
+            }
             ArrayList<String> transResult = new ArrayList<>();
-            for (String s : qs) {
-                logInfo("check send trans result: " + s);
-                TransApi.ResultBean rb = api.getTransResult(s, SRC_CODE, DES_CODE);
+            for(String query : willQueryStrList) {
+                logInfo("check send trans result: " + query);
+                TransApi.ResultBean rb = api.getTransResult(query, SRC_CODE, DES_CODE);
                 transResult.add(rb.trans_result.get(0).dst);
             }
 
@@ -131,101 +153,152 @@ public class Main {
                 log("Error: trans result error!");
                 break;
             }
-
+            LinkedHashMap<String, String> resultMap = new LinkedHashMap<>();
             String desStr = "";
-            for (String s : transResult) {
-                desStr += s;
+            for (String result : transResult) {
+                desStr += unicode2string(result);
             }
-            logInfo("check des str: " + desStr + ", length: " + desStr.length());
+            desStr = desStr.replace("\\ n", SEPARATOR);
+            if (!desStr.endsWith(SEPARATOR)) {
+                logInfo("invalid end char, check last index: " + desStr.lastIndexOf(SEPARATOR));
+                desStr = desStr.substring(0, desStr.lastIndexOf(SEPARATOR));
+            }
+            logInfo("check des str: " + desStr);
 
-            HashMap<String, String> resultMap = null;
-            try {
-                resultMap = gson.fromJson(desStr, new TypeToken<HashMap<String, String>>() {
-                }.
-                        getType());
-            } catch (JsonSyntaxException e) {
-                e.printStackTrace();
+            String[] desCollect = desStr.split(String.valueOf(SEPARATOR));
+            for (String s : desCollect) {
+                logInfo(s);
             }
-            if (resultMap == null || resultMap.isEmpty()) {
+            long desCollectSize = desCollect.length;
+            long srcCollectSize = tmp.keySet().size();
+            logInfo("check des size: " + desCollectSize);
+            logInfo("check src size: " + srcCollectSize);
+            if (desCollectSize != srcCollectSize) {
+                log("Error: origin source size un equals result data size, maybe data lost!!!");
+                break;
+            }
+
+            int i = 0;
+            for (String k : tmp.keySet()) {
+                resultMap.put(k, desCollect[i++]);
+            }
+
+            if (resultMap.isEmpty()) {
                 log("Error: result string convert to map failed!");
                 break;
             }
-            File outFile = new File("out");
-            if (!outFile.exists()) {
-                outFile.mkdirs();
-            }
-            File stringsXml = new File(outFile, "strings.xml");
-            if (stringsXml.exists()) {
-                stringsXml.delete();
-            }
-            FileOutputStream fops = null;
-            try {
-                fops = new FileOutputStream(stringsXml);
-                fops.write("<resources>\n".getBytes());
-                fops.write(String.format("<!-- Auto generate by peng.wang@pekall.com translation " +
-                        "utils at %s.-->%n", SDF_LOG.format(new Date())).getBytes());
-                for (Map.Entry<String, String> e : resultMap.entrySet()) {
-                    String s = String.format("\t<string name=\"%s\">%s</string>%n", unicode2string(e.getKey()), unicode2string(e.getValue()));
-                    logInfo(s);
-                    fops.write(s.getBytes());
-                }
-                fops.write("</resources>".getBytes());
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
+
+            if (saveNewStringInFile(resultMap)) {
+                log("=== SUCCESS ===");
+            } else {
                 break;
-            } catch (IOException e) {
-                e.printStackTrace();
-                break;
-            } finally {
-                if (fops != null) {
-                    try {
-                        fops.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
             }
-            log("please check the  generate file: " + stringsXml.getAbsolutePath());
-            log("=== SUCCESS ===");
             return;
         } while (false);
         log("=== FAILED!!! ===");
     }
 
-    public static String[] getSubStringIfTooLength(String str) {
-        String[] result;
-        if (str.length() > QUERY_STR_MAX_LENGTH) {
-            int size = str.length() / QUERY_STR_MAX_LENGTH + 1;
-            result = new String[size];
-            for (int i = 0; i < size; i++) {
-                int start = i * QUERY_STR_MAX_LENGTH;
-                int end = (i + 1) * QUERY_STR_MAX_LENGTH;
-                if (end > str.length()) {
-                    end = str.length();
-                }
-                logInfo(String.format("getSubStringIfTooLength: start[%s], end[%s], str length[%s], " +
-                        "size[%s]", start, end, str.length(), size));
-                result[i] = str.substring(start, end);
+    private static void translationOneByOne(LinkedHashMap<String, String> tmp) {
+        logInfo("translationOneByOne");
+        LinkedHashMap<String, String> resultMap = new LinkedHashMap<>();
+        TransApi api = new TransApi(APP_ID, SECURITY_KEY);
+        for (Map.Entry<String, String> entry : tmp.entrySet()) {
+            String val = "" ;
+            try {
+                TransApi.ResultBean rb = api.getTransResult(entry.getValue(), SRC_CODE, DES_CODE);
+                val = unicode2string(rb.trans_result.get(0).dst);
+                logInfo("translationOneByOne check result des: " + val);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-
-        } else {
-            result = new String[1];
-            result[0] = str;
+            resultMap.put(entry.getKey(), val);
         }
+        if (saveNewStringInFile(resultMap)) {
+            log("=== SUCCESS ===");
+        } else {
+            log("=== FAILED!!! ===");
+        }
+    }
+
+    private static boolean saveNewStringInFile(LinkedHashMap<String, String> resultMap) {
+        boolean result = false;
+        File outFile = new File("out");
+        if (!outFile.exists()) {
+            outFile.mkdirs();
+        }
+        File stringsXml = new File(outFile, "strings.xml");
+        if (stringsXml.exists()) {
+            stringsXml.delete();
+        }
+        FileOutputStream fops = null;
+        try {
+            fops = new FileOutputStream(stringsXml);
+            fops.write("<resources>\n".getBytes());
+            fops.write(String.format("<!-- Auto generate by peng.wang@pekall.com translation " +
+                    "utils at %s.-->%n", SDF_LOG.format(new Date())).getBytes());
+            for (Map.Entry<String, String> e : resultMap.entrySet()) {
+                String val = unicode2string(e.getValue());
+                do {
+                    if (val.endsWith(" ")) {
+                        val = val.substring(0, val.length() - 1);
+                        continue;
+                    }
+                    if (val.endsWith("\\")) {
+                        val = val.substring(0, val.length() - 1);
+                        continue;
+                    }
+                    if (val.endsWith(",") || val.endsWith("，")) {
+                        val = val.substring(0, val.length() - 1);
+                        continue;
+                    }
+                    if (val.startsWith("，") || val.startsWith(",")) {
+                        val = val.substring(1, val.length());
+                        continue;
+                    }
+                    if (val.startsWith(" ")) {
+                        val = val.substring(1, val.length());
+                        continue;
+                    }
+                    if (val.startsWith("\\")) {
+                        val = val.substring(1, val.length());
+                        continue;
+                    }
+                    break;
+                } while (true);
+                String s = String.format("\t<string name=\"%s\">%s</string>%n", unicode2string(e.getKey()), val);
+                logInfo(s);
+                fops.write(s.getBytes());
+            }
+            fops.write("</resources>".getBytes());
+            result = true;
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (fops != null) {
+                try {
+                    fops.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        log("please check the  generate file: " + stringsXml.getAbsolutePath());
         return result;
     }
 
-    public static HashMap<String, String> parsingXml(Document document) throws DocumentException {
+    public static LinkedHashMap<String, String> parsingXml(Document document) throws DocumentException {
         Element root = document.getRootElement();
         // iterate through child elements of root
-        HashMap<String, String> tmp = new HashMap<>();
+        LinkedHashMap<String, String> tmp = new LinkedHashMap<>();
         for (Iterator<Element> it = root.elementIterator(); it.hasNext(); ) {
             Element element = it.next();
             // do something
             Attribute isSelfAttr = element.attribute("name");
             String key = isSelfAttr.getStringValue();
             String value = element.getStringValue();
-//            value = value.replace(";", "").replace("“", "\\\"").replace("”", "\\\"");
+            value = value.replace(SEPARATOR, "").replace("“", "\\\"").replace("”", "\\\"").replace("，", ",");
             logInfo(String.format("<string name=\"%s\">%s</string>", key, value));
             tmp.put(key, value);
         }
@@ -233,41 +306,44 @@ public class Main {
         return tmp;
     }
 
-    private final static HashMap<String, String> SUPPORTED_MAP = new HashMap<>();
+    private final static HashMap<String, String> SUPPORTED_MAP_MODEL_1 = new HashMap<>();
     static {
-        SUPPORTED_MAP.put("auto", "自动检测");
-        SUPPORTED_MAP.put("zh", "中文");
-        SUPPORTED_MAP.put("en", "英语");
-        SUPPORTED_MAP.put("yue", "粤语");
-        SUPPORTED_MAP.put("wyw", "文言文");
-        SUPPORTED_MAP.put("jp", "日语");
-        SUPPORTED_MAP.put("kor", "韩语");
-        SUPPORTED_MAP.put("fra", "法语");
-        SUPPORTED_MAP.put("spa", "西班牙语");
-        SUPPORTED_MAP.put("th", "泰语");
-        SUPPORTED_MAP.put("ara", "阿拉伯语");
-        SUPPORTED_MAP.put("ru", "俄语");
-        SUPPORTED_MAP.put("pt", "葡萄牙语");
-        SUPPORTED_MAP.put("de", "德语");
-        SUPPORTED_MAP.put("it", "意大利语");
-        SUPPORTED_MAP.put("el", "希腊语");
-        SUPPORTED_MAP.put("nl", "荷兰语");
-        SUPPORTED_MAP.put("pl", "波兰语");
-        SUPPORTED_MAP.put("bul", "保加利亚语");
-        SUPPORTED_MAP.put("est", "爱沙尼亚语");
-        SUPPORTED_MAP.put("dan", "丹麦语");
-        SUPPORTED_MAP.put("fin", "芬兰语");
-        SUPPORTED_MAP.put("cs", "捷克语");
-        SUPPORTED_MAP.put("rom", "罗马尼亚语");
-        SUPPORTED_MAP.put("slo", "斯洛文尼亚语");
-        SUPPORTED_MAP.put("swe", "瑞典语");
-        SUPPORTED_MAP.put("hu", "匈牙利语");
-        SUPPORTED_MAP.put("cht", "繁体中文");
-        SUPPORTED_MAP.put("vie", "越南语");
+        SUPPORTED_MAP_MODEL_1.put("auto", "自动检测");
+        SUPPORTED_MAP_MODEL_1.put("zh", "中文");
+        SUPPORTED_MAP_MODEL_1.put("en", "英语");
+        SUPPORTED_MAP_MODEL_1.put("yue", "粤语");
+        SUPPORTED_MAP_MODEL_1.put("jp", "日语");
+        SUPPORTED_MAP_MODEL_1.put("kor", "韩语");
+        SUPPORTED_MAP_MODEL_1.put("ru", "俄语");
+        SUPPORTED_MAP_MODEL_1.put("it", "意大利语");
+        SUPPORTED_MAP_MODEL_1.put("cs", "捷克语");
+        SUPPORTED_MAP_MODEL_1.put("slo", "斯洛文尼亚语");
+        SUPPORTED_MAP_MODEL_1.put("hu", "匈牙利语");
+        SUPPORTED_MAP_MODEL_1.put("cht", "繁体中文");
+        SUPPORTED_MAP_MODEL_1.put("vie", "越南语");
+    }
+    private final static HashMap<String, String> SUPPORTED_MAP_MODEL_2 = new HashMap<>();
+    static {
+        SUPPORTED_MAP_MODEL_2.put("wyw", "文言文");
+        SUPPORTED_MAP_MODEL_2.put("fra", "法语");
+        SUPPORTED_MAP_MODEL_2.put("spa", "西班牙语");
+        SUPPORTED_MAP_MODEL_2.put("th", "泰语");
+        SUPPORTED_MAP_MODEL_2.put("ara", "阿拉伯语");
+        SUPPORTED_MAP_MODEL_2.put("pt", "葡萄牙语");
+        SUPPORTED_MAP_MODEL_2.put("de", "德语");
+        SUPPORTED_MAP_MODEL_2.put("el", "希腊语");
+        SUPPORTED_MAP_MODEL_2.put("nl", "荷兰语");
+        SUPPORTED_MAP_MODEL_2.put("pl", "波兰语");
+        SUPPORTED_MAP_MODEL_2.put("bul", "保加利亚语");
+        SUPPORTED_MAP_MODEL_2.put("est", "爱沙尼亚语");
+        SUPPORTED_MAP_MODEL_2.put("dan", "丹麦语");
+        SUPPORTED_MAP_MODEL_2.put("fin", "芬兰语");
+        SUPPORTED_MAP_MODEL_2.put("rom", "罗马尼亚语");
+        SUPPORTED_MAP_MODEL_2.put("swe", "瑞典语");
     }
 
     private static void printfHelpDetails() {
-            StringBuilder sb = new StringBuilder("  Welcome use the peng.wang@pekall.com personal translation java utils.")
+            StringBuilder sb = new StringBuilder("  Welcome use the peng.wang@pekall.com personal translation jar utils.")
                     .append("\n")
                     .append("\n")
                     .append("  ").append("E.g").append("\t-f[--file] /project_path/resource_path/string.xml")
@@ -276,10 +352,18 @@ public class Main {
                     .append("  ").append("-f").append("\t--file\tThe input source file path that will be translation.").append("\n")
                     .append("  ").append("-h").append("\t--help\tGet help information.").append("\n")
                     .append("  ").append("-i").append("\t--info\tPrint the process debug logs.").append("\n")
+                    .append("  ").append("-m").append("\t--mode\tMode 1 is batch translation,Low accuracy but fast.").append("\n")
+                    .append("  ").append("  ").append("\t      \tMode 2 is translation one by one,Time consuming but accurate.").append("\n")
                     .append("  ").append("-s").append("\t --src\tSrc code.").append("\n")
                     .append("  ").append("-d").append("\t --des\tDes code.").append("\n");
-        for (Map.Entry<String, String> entry : SUPPORTED_MAP.entrySet()) {
-            sb.append("  ").append(" ").append("\t   \t\t").append("[").append(entry.getKey()).append("\t").append(entry.getValue()).append("]").append("\n");
+
+        sb.append("  ").append(" ").append("\t   \t").append("*** This language support mode1 that batch translation.").append("\n");
+        for (Map.Entry<String, String> entry : SUPPORTED_MAP_MODEL_1.entrySet()) {
+            sb.append("  ").append(" ").append("\t   \t").append("[").append(entry.getKey()).append("\t").append(entry.getValue()).append("]").append("\n");
+        }
+        sb.append("  ").append(" ").append("\t   \t").append("*** This language support mode２ that one by one translation.").append("\n");
+        for (Map.Entry<String, String> entry : SUPPORTED_MAP_MODEL_2.entrySet()) {
+            sb.append("  ").append(" ").append("\t   \t").append("[").append(entry.getKey()).append("\t").append(entry.getValue()).append("]").append("\n");
         }
         System.out.print(sb.toString());
     }

@@ -1,0 +1,13 @@
+<resources >
+    <string name="container_freeze_container">您已冻结</string>
+    <string name="container_unfreeze_container">您已恢复</string>
+    <string name="container_lock_container">您已锁定</string>
+    <string name="container_remove_container">您已销毁</string>
+    <string name="container_title">新的工作空间状态</string>
+    <string name="container_ticker">新的工作空间命令下发</string>
+    <string name="container">工作空间</string>
+    <string name="type_of_knox_container">KNOX</string>
+    <string name="type_of_ts_container">TS</string>
+    <string name="type_of_pekall_container">PEKALL</string>
+    <string name="action_bar_title_mdm_reg_exit">退出</string>
+</resources>

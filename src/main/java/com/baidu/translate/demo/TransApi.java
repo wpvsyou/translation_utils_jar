@@ -24,7 +24,6 @@ public class TransApi {
     }
 
     public ResultBean getTransResult(String query, String from, String to) {
-        log(String.format("getTransResult called: query[%s], from[%s], to[%s]", query, from, to));
         Map<String, String> params = buildParams(query, from, to);
         String result = HttpGet.get(TRANS_API_HOST, params);
         ResultBean resultBean = null;

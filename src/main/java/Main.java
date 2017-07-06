@@ -27,7 +27,7 @@ public class Main {
     private static boolean SHOW_INFO_LOG = false;
     private static String SRC_FILE_PATH = "";
     private static String SRC_CODE = "auto";
-    private static String DES_CODE = "en";
+    private static String DST_CODE = "en";
     private static String SEPARATOR = "\\\\n";
     private static String MODE = "bath";
 
@@ -99,11 +99,11 @@ public class Main {
                     return;
                 }
             }
-            if (args[i].equals("-d") || args[i].equals("--des")) {
+            if (args[i].equals("-d") || args[i].equals("--dst")) {
                 if (args.length >= i + 1) {
-                    DES_CODE = args[i + 1];
+                    DST_CODE = args[i + 1];
                 } else {
-                    log("Error: param -s --src!");
+                    log("Error: param -d --dst!");
                     printfHelpDetails();
                     return;
                 }
@@ -117,6 +117,16 @@ public class Main {
                     return;
                 }
             }
+        }
+
+        if (!SUPPORTED_MAP_MODEL_2.containsKey(SRC_CODE) && !SUPPORTED_MAP_MODEL_1.containsKey(SRC_CODE)) {
+            log("Error: param -s --src invalid, please use -h to check support --src code list!");
+            return;
+        }
+
+        if (!SUPPORTED_MAP_MODEL_2.containsKey(DST_CODE) && !SUPPORTED_MAP_MODEL_1.containsKey(DST_CODE)) {
+            log("Error: param -d --dst invalid, please use -h to check support --dst code list!");
+            return;
         }
 
         startTranslation();
@@ -166,7 +176,7 @@ public class Main {
                 break;
             }
 
-            if (SUPPORTED_MAP_MODEL_2.keySet().contains(DES_CODE)) {
+            if (SUPPORTED_MAP_MODEL_2.keySet().contains(DST_CODE)) {
                 MODE = "single";
             }
 
@@ -198,7 +208,7 @@ public class Main {
             }
             ArrayList<String> transResult = new ArrayList<>();
             for (String query : willQueryStrList) {
-                TransApi.ResultBean rb = api.getTransResult(query, SRC_CODE, DES_CODE);
+                TransApi.ResultBean rb = api.getTransResult(query, SRC_CODE, DST_CODE);
                 logInfo("check send trans result: " + query + "\ncheck result: " + rb);
                 transResult.add(rb.trans_result.get(0).dst);
             }
@@ -261,7 +271,7 @@ public class Main {
         for (Map.Entry<String, String> entry : tmp.entrySet()) {
             String val = "";
             try {
-                TransApi.ResultBean rb = api.getTransResult(entry.getValue(), SRC_CODE, DES_CODE);
+                TransApi.ResultBean rb = api.getTransResult(entry.getValue(), SRC_CODE, DST_CODE);
                 val = unicode2string(rb.trans_result.get(0).dst);
                 float percent = ((float) ++count / (float) tmp.size()) * 100;
 //                logInfo("translationOneByOne check result des: " + val);
@@ -299,9 +309,10 @@ public class Main {
         FileOutputStream fops = null;
         try {
             fops = new FileOutputStream(stringsXml);
+            fops.write("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n".getBytes());
             fops.write("<resources>\n".getBytes());
-            fops.write(String.format("<!-- Auto generate by peng.wang@pekall.com translation " +
-                    "utils at %s.-->%n", SDF_LOG.format(new Date())).getBytes());
+            fops.write(String.format("%n<!-- Auto generate by peng.wang@pekall.com translation " +
+                    "utils at %s.-->%n%n", SDF_LOG.format(new Date())).getBytes());
             for (Map.Entry<String, String> e : resultMap.entrySet()) {
                 String val = unicode2string(e.getValue());
                 do {
@@ -378,14 +389,16 @@ public class Main {
                 .append("\n")
                 .append("  ").append("E.g").append("\t-f[--file] /project_path/resource_path/string.xml")
                 .append("\n")
+                .append("  ").append("   ").append("\tjar[COMMAND][VALUE]")
                 .append("\n")
-                .append("  ").append("-f").append("\t--file\tThe input source file path that will be translation.").append("\n")
-                .append("  ").append("-h").append("\t--help\tGet help information.").append("\n")
-                .append("  ").append("-i").append("\t--info\tPrint the process debug logs.").append("\n")
-                .append("  ").append("-m").append("\t--mode\tMode batch is batch translation,Low accuracy but fast.").append("\n")
-                .append("  ").append("  ").append("\t      \tMode single is translation one by one,Time consuming but accurate.").append("\n")
-                .append("  ").append("-s").append("\t --src\tSrc code.").append("\n")
-                .append("  ").append("-d").append("\t --des\tDes code.").append("\n");
+                .append("\n")
+                .append("  ").append("[-f]").append("\t--file\tThe input source file path that will be translation.").append("\n")
+                .append("  ").append("[-h]").append("\t--help\tGet help information.").append("\n")
+                .append("  ").append("[-i]").append("\t--info\tPrint the process debug logs.").append("\n")
+                .append("  ").append("[-m]").append("\t--mode\t[batch ] is batch translation,Low accuracy but fast.").append("\n")
+                .append("  ").append("  ").append("\t      \t[single] is translation one by one,Time consuming but accurate.").append("\n")
+                .append("  ").append("[-s]").append("\t --src\tOriginal language code.").append("\n")
+                .append("  ").append("[-d]").append("\t --dst\tTranslation to language code.").append("\n");
 
         sb.append("  ").append(" ").append("\t   \t").append("*** This language support mode1 that batch translation.").append("\n");
         for (Map.Entry<String, String> entry : SUPPORTED_MAP_MODEL_1.entrySet()) {

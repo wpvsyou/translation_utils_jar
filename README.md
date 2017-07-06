@@ -1,7 +1,7 @@
-**# Auto translation Android resource strings.xml jar util.
-peng.wang@pekall.com personal translation utils jar. create on 2017-07-05**
+# Auto translation Android resource strings.xml jar util.
+peng.wang@pekall.com personal translation utils jar. create on 2017-07-05
 
-**## translation_util_jar 一个能批量自动翻译Android资源文件的java工具．**
+## translation_util_jar 一个能批量自动翻译Android资源文件的java工具．
 
 自动翻译Android项目resource资源文件，方便快捷国际化。在项目根目录下运行如下命令查看效果
 
@@ -19,7 +19,7 @@ peng.wang@pekall.com personal translation utils jar. create on 2017-07-05**
 打印脚本执行详情。
 
     -m	--mode	［batch］ is batch translation,Low accuracy but fast.
-                ［single］ is translation one by one,Time consuming but accurate.
+                     ［single］ is translation one by one,Time consuming but accurate.
 模式(模式1为批量翻译，将源文件解析成gson传，一次翻译多条，节省时间。
 模式2为逐条翻译，每次只翻译一行，效率低但是准确率高。
 

@@ -5,7 +5,7 @@ peng.wang@pekall.com personal translation utils jar. create on 2017-07-05
 
 自动翻译Android项目resource资源文件，方便快捷国际化。在项目根目录下运行如下命令查看效果
 
-    gradle clean; gradle release; java -jar build/libs/translation_utils_jar-1.0.jar -f test.xml; cat out/strings.xml; echo "=====> origin string.xml file:"; cat test.xml
+    gradle clean; gradle build; java -jar build/libs/translation_utils_jar-1.0.jar -f test.xml; cat out/strings.xml; echo "=====> origin string.xml file:"; cat test.xml
         
 帮助文档
         
@@ -167,7 +167,7 @@ peng.wang@pekall.com personal translation utils jar. create on 2017-07-05
 
 to make the translation util jar.（使用gradle工具变异项目）
 
-    "gradle release" 
+    "gradle build" 
 
 show help information.(使用如下命令去获取jar包帮助信息)
 

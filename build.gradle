@@ -23,14 +23,6 @@ dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
 }
 
-task copyJar(type: Copy) {
-    from configurations.runtime
-    into('build/libs/lib')
-}
-
-task release(type: Copy, dependsOn: [build, copyJar]) {
-}
-
 jar {
     manifest {
         attributes('Implementation-Title': 'Gradle',
@@ -40,11 +32,5 @@ jar {
                 'Class-Path': configurations.compile.collect { 'lib/' + it.getName() }.join(' ')
         )
     }
-    into('') {
-        from "$buildDir/classes/main"
-        include('sample/')
-    }
-    into('') {
-        from "$projectDir/src/main/resources"
-    }
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
 }

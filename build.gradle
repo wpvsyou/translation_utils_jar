@@ -36,7 +36,7 @@ jar {
         attributes('Implementation-Title': 'Gradle',
                 'Implementation-Version': version,
                 'Created-By': vendor,
-                'Main-Class': 'com.baidu.translate.demo.TransApi.Main',
+                'Main-Class': 'Main',
                 'Class-Path': configurations.compile.collect { 'lib/' + it.getName() }.join(' ')
         )
     }

@@ -5,7 +5,7 @@ peng.wang@pekall.com personal translation utils jar. create on 2017-07-05
 
 自动翻译Android项目resource资源文件，方便快捷国际化。在项目根目录下运行如下命令查看效果
 
-    gradle clean; gradle release; java -cp build/libs/translation_utils_jar-1.0.jar Main -f test.xml; cat out/strings.xml; echo "=====> origin string.xml file:"; cat test.xml
+    gradle clean; gradle release; java -jar build/libs/translation_utils_jar-1.0.jar -f test.xml; cat out/strings.xml; echo "=====> origin string.xml file:"; cat test.xml
         
 帮助文档
         
@@ -171,7 +171,7 @@ to make the translation util jar.（使用gradle工具变异项目）
 
 show help information.(使用如下命令去获取jar包帮助信息)
 
-    "java -cp build/libs/translation_utils_jar-1.0.jar Main -h"
+    "java -jar build/libs/translation_utils_jar-1.0.jar -h"
 
 声明,此项目不已盈利为目的，只为服务大众码农，代码有不足支出请指正。由于baiduAPI的限制，每月只能翻译低于200万个字符，否则将要收费。所以请各位自行更换代码中的key.
 

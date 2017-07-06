@@ -1,17 +1,33 @@
-# Auto translation Adnroid resource strings.xml jar util.
-######peng.wang@pekall.com persional translation utils jar. create on 2017-07-05
+# Auto translation Android resource strings.xml jar util.
+peng.wang@pekall.com personal translation utils jar. create on 2017-07-05
 
-###自动翻译Android项目resource资源文件，方便快捷国际化。在项目根目录下运行如下命令查看效果
+自动翻译Android项目resource资源文件，方便快捷国际化。在项目根目录下运行如下命令查看效果
 
-#请使用dev_1分支。
+    java -cp build/libs/translation_utils_jar-1.0.jar Main -f test.xml; cat out/strings.xml
+    
+使用帮助
 
-    java -cp build/libs/btrsn-1.0.jar Main -f test.xml; cat out/strings.xml
+    -f	--file	The input source file path that will be translation.
+    指定原文件路径，一次只能指定一个源文件。
+    -h	--help	Get help information.
+    
+    -i	--info	Print the process debug logs.
+    打印脚本执行详情。
+    -m	--mode	Mode 1 is batch translation,Low accuracy but fast.
+    模式(暂不支持设置,模式1为批量翻译，将源文件解析成gson传，一次翻译多条，节省时间。
+    	      	Mode 2 is translation one by one,Time consuming but accurate.
+    	      	模式2为逐条翻译，每次只翻译一行，效率低但是准确率高。
+    -s	 --src	Src code.
+    原文件语言编码，如若不知道请使用auto。
+    -d	 --dst	Dst code.
+    将被翻译成的语言编码，不能是auto。
+    
 
-###暂时只支持标准string字符串的翻译。格式如下:
+暂时只支持标准string字符串的翻译。格式如下:
 
     <string name="string_name">string</string>
 
-###支持的翻译语言范围如下：
+支持的翻译语言范围如下：
 <div class="second-wrap twocolumn">
 <table class="info-table">
 <tr>
@@ -138,14 +154,15 @@
 </div>
 <div class="list-title" id="allDemos">
 
-###to make the translation util jar.（使用gradle工具变异项目）
+to make the translation util jar.（使用gradle工具变异项目）
 
     "gradle release" 
 
-###show help information.(使用如下命令去获取jar包帮助信息)
+show help information.(使用如下命令去获取jar包帮助信息)
 
-    "java -cp build/libs/btrsh-1.0.jar Main -h"
+    "java -cp build/libs/translation_utils_jar-1.0.jar Main -h"
 
-###声明,此项目不已盈利为目的，只为服务大众码农，代码有不足支出请指正。由于baiduAPI的限制，每月只能翻译低于200万个字符，否则将要收费。所以请各位自行更换代码中的key.
+声明,此项目不已盈利为目的，只为服务大众码农，代码有不足支出请指正。由于baiduAPI的限制，每月只能翻译低于200万个字符，否则将要收费。所以请各位自行更换代码中的key.
+
 http://api.fanyi.baidu.com/api/trans/product/index
 

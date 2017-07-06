@@ -1,5 +1,7 @@
-# Auto translation Android resource strings.xml jar util.
-peng.wang@pekall.com personal translation utils jar. create on 2017-07-05
+**# Auto translation Android resource strings.xml jar util.
+peng.wang@pekall.com personal translation utils jar. create on 2017-07-05**
+
+**## translation_util_jar 一个能批量自动翻译Android资源文件的java工具．**
 
 自动翻译Android项目resource资源文件，方便快捷国际化。在项目根目录下运行如下命令查看效果
 
@@ -16,9 +18,9 @@ peng.wang@pekall.com personal translation utils jar. create on 2017-07-05
     -i	--info	Print the process debug logs.
 打印脚本执行详情。
 
-    -m	--mode	Mode 1 is batch translation,Low accuracy but fast.
-                Mode 2 is translation one by one,Time consuming but accurate.
-模式(暂不支持设置,模式1为批量翻译，将源文件解析成gson传，一次翻译多条，节省时间。
+    -m	--mode	［batch］ is batch translation,Low accuracy but fast.
+                ［single］ is translation one by one,Time consuming but accurate.
+模式(模式1为批量翻译，将源文件解析成gson传，一次翻译多条，节省时间。
 模式2为逐条翻译，每次只翻译一行，效率低但是准确率高。
 
     -s	 --src	Src code.
@@ -27,6 +29,10 @@ peng.wang@pekall.com personal translation utils jar. create on 2017-07-05
     -d	 --dst	Dst code.
 将被翻译成的语言编码，不能是auto。
     
+　　因为某些语种翻译后的返回值难于分片(因为批翻译是解析所有串的值用\\n来做分割合成一个大串在做翻译，此时返回值由于语种
+不同，差异很大，导致代码不能准确定位到\\n分隔符去做分片，还原数据，导致数据丢失或者不准确)，或通过json还原，所以会强制
+走模式single.强烈建议大家在使用时加上参数-m single,此模式会大大提高翻译准确率与成功率，只有中文简体/繁体之间的转换可
+以用batch模式.
 
 暂时只支持标准string字符串的翻译。格式如下:
 

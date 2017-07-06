@@ -16,19 +16,59 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Main {
-    private final static String TAG = "BTRSN";
-    private static final SimpleDateFormat SDF_LOG = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.CHINA);
+    public final static String TAG = "TRANSLATION_UTIL_JAR";
+    public static final SimpleDateFormat SDF_LOG = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.CHINA);
     // 在平台申请的APP_ID 详见 http://api.fanyi.baidu.com/api/trans/product/desktop?req=developer
     private static final String APP_ID = "20170627000060621";
     private static final String SECURITY_KEY = "zFjZgCuMH_vfB9Q7ieM4";
     private final static int QUERY_STR_MAX_LENGTH = 2000;
+    private final static HashMap<String, String> SUPPORTED_MAP_MODEL_1 = new HashMap<>();
+    private final static HashMap<String, String> SUPPORTED_MAP_MODEL_2 = new HashMap<>();
     private static boolean SHOW_INFO_LOG = false;
     private static String SRC_FILE_PATH = "";
     private static String SRC_CODE = "auto";
     private static String DES_CODE = "en";
     private static String SEPARATOR = "\\\\n";
+    private static String MODE = "bath";
+
+    static {
+        SUPPORTED_MAP_MODEL_1.put("auto", "自动检测");
+        SUPPORTED_MAP_MODEL_1.put("zh", "中文");
+        SUPPORTED_MAP_MODEL_1.put("en", "英语");
+        SUPPORTED_MAP_MODEL_1.put("yue", "粤语");
+        SUPPORTED_MAP_MODEL_1.put("jp", "日语");
+        SUPPORTED_MAP_MODEL_1.put("kor", "韩语");
+        SUPPORTED_MAP_MODEL_1.put("ru", "俄语");
+        SUPPORTED_MAP_MODEL_1.put("it", "意大利语");
+        SUPPORTED_MAP_MODEL_1.put("cs", "捷克语");
+        SUPPORTED_MAP_MODEL_1.put("slo", "斯洛文尼亚语");
+        SUPPORTED_MAP_MODEL_1.put("hu", "匈牙利语");
+        SUPPORTED_MAP_MODEL_1.put("cht", "繁体中文");
+        SUPPORTED_MAP_MODEL_1.put("vie", "越南语");
+    }
+
+    static {
+        SUPPORTED_MAP_MODEL_2.put("wyw", "文言文");
+        SUPPORTED_MAP_MODEL_2.put("fra", "法语");
+        SUPPORTED_MAP_MODEL_2.put("spa", "西班牙语");
+        SUPPORTED_MAP_MODEL_2.put("th", "泰语");
+        SUPPORTED_MAP_MODEL_2.put("ara", "阿拉伯语");
+        SUPPORTED_MAP_MODEL_2.put("pt", "葡萄牙语");
+        SUPPORTED_MAP_MODEL_2.put("de", "德语");
+        SUPPORTED_MAP_MODEL_2.put("el", "希腊语");
+        SUPPORTED_MAP_MODEL_2.put("nl", "荷兰语");
+        SUPPORTED_MAP_MODEL_2.put("pl", "波兰语");
+        SUPPORTED_MAP_MODEL_2.put("bul", "保加利亚语");
+        SUPPORTED_MAP_MODEL_2.put("est", "爱沙尼亚语");
+        SUPPORTED_MAP_MODEL_2.put("dan", "丹麦语");
+        SUPPORTED_MAP_MODEL_2.put("fin", "芬兰语");
+        SUPPORTED_MAP_MODEL_2.put("rom", "罗马尼亚语");
+        SUPPORTED_MAP_MODEL_2.put("swe", "瑞典语");
+    }
 
     public static void main(String[] args) {
+        log("===> WELCOME USE TRANSLATION UTIL JAR. ");
+        log("===> WAITING FOR INIT...");
         if (args.length == 0 || args[0].isEmpty()) {
             printfHelpDetails();
             return;
@@ -68,12 +108,22 @@ public class Main {
                     return;
                 }
             }
+            if (args[i].equals("-m") || args[i].equals("--mode")) {
+                if (args.length > i + 1) {
+                    MODE = args[i + 1];
+                } else {
+                    log("Error: param -m --mode!");
+                    printfHelpDetails();
+                    return;
+                }
+            }
         }
 
         startTranslation();
     }
 
     private static void startTranslation() {
+        log("===> START TRANSLATION WAIT A MINUTE...");
         do {
             if (SRC_FILE_PATH.trim().isEmpty()) {
                 log("Error: input source file must not be null! more details please with --help or -h");
@@ -117,6 +167,10 @@ public class Main {
             }
 
             if (SUPPORTED_MAP_MODEL_2.keySet().contains(DES_CODE)) {
+                MODE = "single";
+            }
+
+            if (MODE.equals("single")) {
                 translationOneByOne(tmp);
                 return;
             }
@@ -143,9 +197,9 @@ public class Main {
                 willQueryStrList.add(query);
             }
             ArrayList<String> transResult = new ArrayList<>();
-            for(String query : willQueryStrList) {
-                logInfo("check send trans result: " + query);
+            for (String query : willQueryStrList) {
                 TransApi.ResultBean rb = api.getTransResult(query, SRC_CODE, DES_CODE);
+                logInfo("check send trans result: " + query + "\ncheck result: " + rb);
                 transResult.add(rb.trans_result.get(0).dst);
             }
 
@@ -189,34 +243,46 @@ public class Main {
             }
 
             if (saveNewStringInFile(resultMap)) {
-                log("=== SUCCESS ===");
+                log("===> SUCCESS");
             } else {
                 break;
             }
             return;
         } while (false);
-        log("=== FAILED!!! ===");
+        log("===> FAILED!!!");
     }
 
     private static void translationOneByOne(LinkedHashMap<String, String> tmp) {
         logInfo("translationOneByOne");
         LinkedHashMap<String, String> resultMap = new LinkedHashMap<>();
         TransApi api = new TransApi(APP_ID, SECURITY_KEY);
+        int count = 0;
+        ProgressBar progressBar = new ProgressBar();
         for (Map.Entry<String, String> entry : tmp.entrySet()) {
-            String val = "" ;
+            String val = "";
             try {
                 TransApi.ResultBean rb = api.getTransResult(entry.getValue(), SRC_CODE, DES_CODE);
                 val = unicode2string(rb.trans_result.get(0).dst);
-                logInfo("translationOneByOne check result des: " + val);
+                float percent = ((float) ++count / (float) tmp.size()) * 100;
+//                logInfo("translationOneByOne check result des: " + val);
+                int p = (int) percent;
+                progressBar.showBarByPoint(p);
+                /*String printStr = String.format("=== TRANSLATION PERCENT　%s%% ===", p);
+                System.out.print(printStr);
+                for (int j = 0; j <= String.valueOf(printStr).length(); j++) {
+                    System.out.print("\b");
+                }*/
             } catch (Exception e) {
                 e.printStackTrace();
             }
             resultMap.put(entry.getKey(), val);
         }
+        System.out.print("\n");
         if (saveNewStringInFile(resultMap)) {
-            log("=== SUCCESS ===");
+            log("===> TRANSLATION PERCENT　100%");
+            log("===> SUCCESS");
         } else {
-            log("=== FAILED!!! ===");
+            log("===> FAILED!!!");
         }
     }
 
@@ -284,7 +350,7 @@ public class Main {
                 }
             }
         }
-        log("please check the  generate file: " + stringsXml.getAbsolutePath());
+        log("===> PLEASE CHECK THE  GENERATE FILE \t[" + stringsXml.getAbsolutePath() + "]");
         return result;
     }
 
@@ -306,56 +372,20 @@ public class Main {
         return tmp;
     }
 
-    private final static HashMap<String, String> SUPPORTED_MAP_MODEL_1 = new HashMap<>();
-    static {
-        SUPPORTED_MAP_MODEL_1.put("auto", "自动检测");
-        SUPPORTED_MAP_MODEL_1.put("zh", "中文");
-        SUPPORTED_MAP_MODEL_1.put("en", "英语");
-        SUPPORTED_MAP_MODEL_1.put("yue", "粤语");
-        SUPPORTED_MAP_MODEL_1.put("jp", "日语");
-        SUPPORTED_MAP_MODEL_1.put("kor", "韩语");
-        SUPPORTED_MAP_MODEL_1.put("ru", "俄语");
-        SUPPORTED_MAP_MODEL_1.put("it", "意大利语");
-        SUPPORTED_MAP_MODEL_1.put("cs", "捷克语");
-        SUPPORTED_MAP_MODEL_1.put("slo", "斯洛文尼亚语");
-        SUPPORTED_MAP_MODEL_1.put("hu", "匈牙利语");
-        SUPPORTED_MAP_MODEL_1.put("cht", "繁体中文");
-        SUPPORTED_MAP_MODEL_1.put("vie", "越南语");
-    }
-    private final static HashMap<String, String> SUPPORTED_MAP_MODEL_2 = new HashMap<>();
-    static {
-        SUPPORTED_MAP_MODEL_2.put("wyw", "文言文");
-        SUPPORTED_MAP_MODEL_2.put("fra", "法语");
-        SUPPORTED_MAP_MODEL_2.put("spa", "西班牙语");
-        SUPPORTED_MAP_MODEL_2.put("th", "泰语");
-        SUPPORTED_MAP_MODEL_2.put("ara", "阿拉伯语");
-        SUPPORTED_MAP_MODEL_2.put("pt", "葡萄牙语");
-        SUPPORTED_MAP_MODEL_2.put("de", "德语");
-        SUPPORTED_MAP_MODEL_2.put("el", "希腊语");
-        SUPPORTED_MAP_MODEL_2.put("nl", "荷兰语");
-        SUPPORTED_MAP_MODEL_2.put("pl", "波兰语");
-        SUPPORTED_MAP_MODEL_2.put("bul", "保加利亚语");
-        SUPPORTED_MAP_MODEL_2.put("est", "爱沙尼亚语");
-        SUPPORTED_MAP_MODEL_2.put("dan", "丹麦语");
-        SUPPORTED_MAP_MODEL_2.put("fin", "芬兰语");
-        SUPPORTED_MAP_MODEL_2.put("rom", "罗马尼亚语");
-        SUPPORTED_MAP_MODEL_2.put("swe", "瑞典语");
-    }
-
     private static void printfHelpDetails() {
-            StringBuilder sb = new StringBuilder("  Welcome use the peng.wang@pekall.com personal translation jar utils.")
-                    .append("\n")
-                    .append("\n")
-                    .append("  ").append("E.g").append("\t-f[--file] /project_path/resource_path/string.xml")
-                    .append("\n")
-                    .append("\n")
-                    .append("  ").append("-f").append("\t--file\tThe input source file path that will be translation.").append("\n")
-                    .append("  ").append("-h").append("\t--help\tGet help information.").append("\n")
-                    .append("  ").append("-i").append("\t--info\tPrint the process debug logs.").append("\n")
-                    .append("  ").append("-m").append("\t--mode\tMode 1 is batch translation,Low accuracy but fast.").append("\n")
-                    .append("  ").append("  ").append("\t      \tMode 2 is translation one by one,Time consuming but accurate.").append("\n")
-                    .append("  ").append("-s").append("\t --src\tSrc code.").append("\n")
-                    .append("  ").append("-d").append("\t --des\tDes code.").append("\n");
+        StringBuilder sb = new StringBuilder("  Welcome use the peng.wang@pekall.com personal translation jar utils.")
+                .append("\n")
+                .append("\n")
+                .append("  ").append("E.g").append("\t-f[--file] /project_path/resource_path/string.xml")
+                .append("\n")
+                .append("\n")
+                .append("  ").append("-f").append("\t--file\tThe input source file path that will be translation.").append("\n")
+                .append("  ").append("-h").append("\t--help\tGet help information.").append("\n")
+                .append("  ").append("-i").append("\t--info\tPrint the process debug logs.").append("\n")
+                .append("  ").append("-m").append("\t--mode\tMode batch is batch translation,Low accuracy but fast.").append("\n")
+                .append("  ").append("  ").append("\t      \tMode single is translation one by one,Time consuming but accurate.").append("\n")
+                .append("  ").append("-s").append("\t --src\tSrc code.").append("\n")
+                .append("  ").append("-d").append("\t --des\tDes code.").append("\n");
 
         sb.append("  ").append(" ").append("\t   \t").append("*** This language support mode1 that batch translation.").append("\n");
         for (Map.Entry<String, String> entry : SUPPORTED_MAP_MODEL_1.entrySet()) {

@@ -3,24 +3,29 @@ peng.wang@pekall.com personal translation utils jar. create on 2017-07-05
 
 自动翻译Android项目resource资源文件，方便快捷国际化。在项目根目录下运行如下命令查看效果
 
-    java -cp build/libs/translation_utils_jar-1.0.jar Main -f test.xml; cat out/strings.xml
+    gradle clean; gradle release; java -cp build/libs/translation_utils_jar-1.0.jar Main -f test.xml; cat out/strings.xml
     
 使用帮助
 
     -f	--file	The input source file path that will be translation.
-    指定原文件路径，一次只能指定一个源文件。
+指定原文件路径，一次只能指定一个源文件。
+
     -h	--help	Get help information.
-    
+帮助
+
     -i	--info	Print the process debug logs.
-    打印脚本执行详情。
+打印脚本执行详情。
+
     -m	--mode	Mode 1 is batch translation,Low accuracy but fast.
-    模式(暂不支持设置,模式1为批量翻译，将源文件解析成gson传，一次翻译多条，节省时间。
-    	      	Mode 2 is translation one by one,Time consuming but accurate.
-    	      	模式2为逐条翻译，每次只翻译一行，效率低但是准确率高。
+                Mode 2 is translation one by one,Time consuming but accurate.
+模式(暂不支持设置,模式1为批量翻译，将源文件解析成gson传，一次翻译多条，节省时间。
+模式2为逐条翻译，每次只翻译一行，效率低但是准确率高。
+
     -s	 --src	Src code.
-    原文件语言编码，如若不知道请使用auto。
+原文件语言编码，如若不知道请使用auto。
+
     -d	 --dst	Dst code.
-    将被翻译成的语言编码，不能是auto。
+将被翻译成的语言编码，不能是auto。
     
 
 暂时只支持标准string字符串的翻译。格式如下:
